@@ -1,48 +1,70 @@
-import React, { useMemo, useState } from "react";
-import {View, Text, StyleSheet, Pressable, TextInput, ScrollView, Platform,} from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
+import {View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform} from "react-native";
+import {router, useLocalSearchParams} from "expo-router";
+import {Options} from "sucrase/dist/types/Options-gen-types";
+import {useState} from "react";
 import {DAYS} from "@/app/(tabs)";
+import {Picker} from "@react-native-picker/picker";
 
 type CategoryKey = "deep" | "study" | "gym" | "social" | "rest";
 
 const CATEGORIES: { key: CategoryKey; label: string }[] = [
-  { key: "deep", label: "Deep Work" },
-  { key: "study", label: "Study" },
-  { key: "gym", label: "Gym" },
-  { key: "social", label: "Social" },
-  { key: "rest", label: "Rest" },
+  {key: "deep", label: "Deep Work"},
+  {key: "study", label: "Study"},
+  {key: "gym", label: "Gym"},
+  {key: "social", label: "Social"},
+  {key: "rest", label: "Rest"},
 ];
 
-const PREVIEW_ITEMS = [
-  { id: "1", category: "deep" as CategoryKey, hours: "4h" },
-  { id: "2", category: "gym" as CategoryKey, hours: "1.5h" },
-];
-
-export default function DayScreenUI() {
-  const { day } = useLocalSearchParams<{ day: string }>();
-  const selectedDay = DAYS.find(
-    (d) => d.day === Number(day));
-
+export default function DayScreen() {
+  const {day} = useLocalSearchParams();
   const [category, setCategory] = useState<CategoryKey>("deep");
-  const [hoursText, setHoursText] = useState("1");
+  const [hours, setHours] = useState<string>("0");
+
+
+  const selectedDay = DAYS.find((d) => d.day === Number(day));
+  const PREVIEW_ITEMS = [
+    {id: "1", category: "deep" as CategoryKey, hours: "4h"},
+    {id: "2", category: "gym" as CategoryKey, hours: "1.5h"},
+  ];
+  const [activities, setActivities] = useState(PREVIEW_ITEMS);
+
+  const handleAdd = () => {
+    const numericHours = Number(hours);
+
+    if (!numericHours || numericHours <= 0) {
+      return;
+    } else {
+      const newItem = {
+        id: String(Date.now()),
+        category,
+        hours: hours,
+      }
+      setActivities((prev) => [newItem, ...prev]);
+    }
+
+  }
+
+  const handleDelete = (id: string) => {
+    setActivities((prev) => prev.filter((item) => item.id !== id));
+  }
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content}>
+
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
 
-        <Text style={styles.title}>{selectedDay?.day}</Text>
-        <Text style={styles.total}>Всего: {selectedDay?.hours}</Text>
+        <Text style={styles.title}>Day {selectedDay?.day}</Text>
+        <Text style={styles.total}>Totally {selectedDay?.hours}</Text>
 
-        <View style={styles.divider} />
+        <View style={styles.divider}/>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Add an activity</Text>
 
-          <Text style={styles.label}>КАТЕГОРИЯ</Text>
+          <Text style={styles.label}>Category</Text>
           <View style={styles.pickerOuter}>
             <View style={styles.pickerInner}>
               <Picker
@@ -52,26 +74,27 @@ export default function DayScreenUI() {
                 dropdownIconColor="#111827"
               >
                 {CATEGORIES.map((c) => (
-                  <Picker.Item key={c.key} label={c.label} value={c.key} />
+                  <Picker.Item key={c.key} label={c.label} value={c.key}/>
                 ))}
               </Picker>
             </View>
           </View>
 
-          <Text style={[styles.label, { marginTop: 16 }]}>Amount of hours</Text>
+          <Text style={[styles.label, {marginTop: 16}]}>Amount of hours</Text>
 
           <View style={styles.row}>
             <TextInput
-              value={hoursText}
-              onChangeText={setHoursText}
+              value={hours}
+              onChangeText={setHours}
               keyboardType="decimal-pad"
-              placeholder="1"
+              placeholder="0"
               placeholderTextColor="#9CA3AF"
               style={styles.input}
             />
 
-            <Pressable style={styles.addBtn}>
-              <Text style={styles.addBtnText}>＋ Add</Text>
+            <Pressable style={styles.addBtn}
+                       onPress={handleAdd}>
+              <Text style={styles.addBtnText}>＋ Добавить</Text>
             </Pressable>
           </View>
         </View>
@@ -79,19 +102,20 @@ export default function DayScreenUI() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Activities</Text>
 
-          <View style={{ gap: 12, marginTop: 8 }}>
-            {PREVIEW_ITEMS.map((item) => (
+          <View style={{gap: 12, marginTop: 8}}>
+            {activities.map((item) => (
               <View key={item.id} style={styles.item}>
-                <View style={styles.dot} />
+                <View style={styles.dot}/>
 
-                <View style={{ flex: 1 }}>
+                <View style={{flex: 1}}>
                   <Text style={styles.itemTitle}>
                     {CATEGORIES.find((c) => c.key === item.category)?.label}
                   </Text>
                   <Text style={styles.itemSub}>{item.hours}</Text>
                 </View>
 
-                <Pressable style={styles.trashBtn}>
+                <Pressable style={styles.trashBtn}
+                           onPress={() => handleDelete(item.id)}>
                   <Text style={styles.trash}>🗑️</Text>
                 </Pressable>
               </View>
@@ -99,7 +123,6 @@ export default function DayScreenUI() {
           </View>
         </View>
       </ScrollView>
-
       <View style={styles.bottomBar}>
         <Pressable style={[styles.bottomBtn, styles.resetBtn]}>
           <Text style={styles.resetText}>↻ Reset</Text>
@@ -111,19 +134,19 @@ export default function DayScreenUI() {
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFFFFF" },
-  content: { padding: 18, paddingBottom: 120 },
+  root: {flex: 1, backgroundColor: "#FFFFFF"},
+  content: {padding: 18, paddingBottom: 120},
 
-  backBtn: { width: 44, height: 44, justifyContent: "center" },
-  backArrow: { fontSize: 26, fontWeight: "800", color: "#111827" },
+  backBtn: {width: 44, height: 44, justifyContent: "center"},
+  backArrow: {fontSize: 26, fontWeight: "800", color: "#111827"},
 
-  title: { fontSize: 30, fontWeight: "900", marginTop: 8, color: "#111827" },
-  total: { fontSize: 18, color: "#6B7280", marginTop: 10, fontWeight: "700" },
+  title: {fontSize: 30, fontWeight: "900", marginTop: 8, color: "#111827"},
+  total: {fontSize: 18, color: "#6B7280", marginTop: 10, fontWeight: "700"},
 
-  divider: { height: 1, backgroundColor: "#E5E7EB", marginVertical: 18 },
+  divider: {height: 1, backgroundColor: "#E5E7EB", marginVertical: 18},
 
   card: {
     borderWidth: 1,
@@ -162,10 +185,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   picker: {
-    ...(Platform.OS === "ios" ? { height: 44 } : { height: 52 }),
+    ...(Platform.OS === "ios" ? {height: 44} : {height: 52}),
   },
 
-  row: { flexDirection: "row", gap: 12, alignItems: "center", marginTop: 10 },
+  row: {flexDirection: "row", gap: 12, alignItems: "center", marginTop: 10},
 
   input: {
     flex: 1,
@@ -188,7 +211,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  addBtnText: { color: "#FFFFFF", fontSize: 18, fontWeight: "900" },
+  addBtnText: {color: "#FFFFFF", fontSize: 18, fontWeight: "900"},
 
   item: {
     flexDirection: "row",
@@ -200,12 +223,12 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#FFFFFF",
   },
-  dot: { width: 18, height: 18, borderRadius: 999, backgroundColor: "#16A34A" },
-  itemTitle: { fontSize: 18, fontWeight: "900", color: "#111827" },
-  itemSub: { marginTop: 6, fontSize: 16, color: "#6B7280", fontWeight: "800" },
+  dot: {width: 18, height: 18, borderRadius: 999, backgroundColor: "#16A34A"},
+  itemTitle: {fontSize: 18, fontWeight: "900", color: "#111827"},
+  itemSub: {marginTop: 6, fontSize: 16, color: "#6B7280", fontWeight: "800"},
 
-  trashBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  trash: { fontSize: 18 },
+  trashBtn: {width: 44, height: 44, alignItems: "center", justifyContent: "center"},
+  trash: {fontSize: 18},
 
   bottomBar: {
     position: "absolute",
@@ -228,12 +251,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 
-  resetBtn: { backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" },
-  resetText: { fontSize: 18, fontWeight: "900", color: "#111827" },
+  resetBtn: {backgroundColor: "#FFFFFF", borderColor: "#E5E7EB"},
+  resetText: {fontSize: 18, fontWeight: "900", color: "#111827"},
 
-  deleteBtn: { backgroundColor: "#EF4444", borderColor: "#EF4444" },
-  deleteText: { fontSize: 18, fontWeight: "900", color: "#FFFFFF" },
+  deleteBtn: {backgroundColor: "#EF4444", borderColor: "#EF4444"},
+  deleteText: {fontSize: 18, fontWeight: "900", color: "#FFFFFF"},
 
-  saveBtn: { backgroundColor: "#111827", borderColor: "#111827" },
-  saveText: { fontSize: 18, fontWeight: "900", color: "#FFFFFF" },
+  saveBtn: {backgroundColor: "#111827", borderColor: "#111827"},
+  saveText: {fontSize: 18, fontWeight: "900", color: "#FFFFFF"},
 });
