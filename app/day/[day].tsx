@@ -1,11 +1,11 @@
-import {View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform} from "react-native";
+import {View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Alert} from "react-native";
 import {router, useLocalSearchParams} from "expo-router";
 import {Options} from "sucrase/dist/types/Options-gen-types";
 import {useState} from "react";
 import {DAYS} from "@/app/(tabs)";
 import {Picker} from "@react-native-picker/picker";
 
-type CategoryKey = "deep" | "study" | "gym" | "social" | "rest";
+type CategoryKey = "deep" | "study" | "gym" | "social" | "rest" | "";
 
 const CATEGORIES: { key: CategoryKey; label: string }[] = [
   {key: "deep", label: "Deep Work"},
@@ -17,8 +17,8 @@ const CATEGORIES: { key: CategoryKey; label: string }[] = [
 
 export default function DayScreen() {
   const {day} = useLocalSearchParams();
-  const [category, setCategory] = useState<CategoryKey>("deep");
-  const [hours, setHours] = useState<string>("0");
+  const [category, setCategory] = useState<CategoryKey>("");
+  const [hours, setHours] = useState<string>("");
 
 
   const selectedDay = DAYS.find((d) => d.day === Number(day));
@@ -29,14 +29,20 @@ export default function DayScreen() {
   const [activities, setActivities] = useState(PREVIEW_ITEMS);
 
   const handleAdd = () => {
-    const numericHours = Number(hours);
 
-    if (!numericHours || numericHours <= 0) {
+    if(hours.trim() ===""){
+      Alert.alert("This field shouldn't be empty");
+      return;
+    }
+
+    const numericHours = Number(hours);
+    if(!numericHours || numericHours <= 0) {
+      Alert.alert("Should be more than 0");
       return;
     } else {
       const newItem = {
         id: String(Date.now()),
-        category,
+        category: category,
         hours: hours,
       }
       setActivities((prev) => [newItem, ...prev]);
@@ -46,6 +52,10 @@ export default function DayScreen() {
 
   const handleDelete = (id: string) => {
     setActivities((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  const handleReset=()=>{
+    setActivities([]);
   }
 
   return (
@@ -87,44 +97,48 @@ export default function DayScreen() {
               value={hours}
               onChangeText={setHours}
               keyboardType="decimal-pad"
-              placeholder="0"
+              placeholder=""
               placeholderTextColor="#9CA3AF"
               style={styles.input}
             />
 
             <Pressable style={styles.addBtn}
                        onPress={handleAdd}>
-              <Text style={styles.addBtnText}>＋ Добавить</Text>
+              <Text style={styles.addBtnText}>＋ Add</Text>
             </Pressable>
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Activities</Text>
+        {activities.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Activities</Text>
 
-          <View style={{gap: 12, marginTop: 8}}>
-            {activities.map((item) => (
-              <View key={item.id} style={styles.item}>
-                <View style={styles.dot}/>
+            <View style={{gap: 12, marginTop: 8}}>
+              {activities.map((item) => (
+                <View key={item.id} style={styles.item}>
+                  <View style={styles.dot}/>
 
-                <View style={{flex: 1}}>
-                  <Text style={styles.itemTitle}>
-                    {CATEGORIES.find((c) => c.key === item.category)?.label}
-                  </Text>
-                  <Text style={styles.itemSub}>{item.hours}</Text>
+                  <View style={{flex: 1}}>
+                    <Text style={styles.itemTitle}>
+                      {CATEGORIES.find((c) => c.key === item.category)?.label}
+                    </Text>
+                    <Text style={styles.itemSub}>{item.hours}</Text>
+                  </View>
+
+                  <Pressable style={styles.trashBtn}
+                             onPress={() => handleDelete(item.id)}>
+                    <Text style={styles.trash}>🗑️</Text>
+                  </Pressable>
                 </View>
-
-                <Pressable style={styles.trashBtn}
-                           onPress={() => handleDelete(item.id)}>
-                  <Text style={styles.trash}>🗑️</Text>
-                </Pressable>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        )}
+
       </ScrollView>
       <View style={styles.bottomBar}>
-        <Pressable style={[styles.bottomBtn, styles.resetBtn]}>
+        <Pressable style={[styles.bottomBtn, styles.resetBtn]}
+        onPress={handleReset}>
           <Text style={styles.resetText}>↻ Reset</Text>
         </Pressable>
 
@@ -138,7 +152,7 @@ export default function DayScreen() {
 
 const styles = StyleSheet.create({
   root: {flex: 1, backgroundColor: "#FFFFFF"},
-  content: {padding: 18, paddingBottom: 120},
+  content: {padding:18, paddingBottom: 120, marginTop:25},
 
   backBtn: {width: 44, height: 44, justifyContent: "center"},
   backArrow: {fontSize: 26, fontWeight: "800", color: "#111827"},
