@@ -1,9 +1,8 @@
 import {View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Alert} from "react-native";
 import {router, useLocalSearchParams} from "expo-router";
-import {Options} from "sucrase/dist/types/Options-gen-types";
 import {useState} from "react";
 import {DAYS} from "@/app/(tabs)";
-import {Picker} from "@react-native-picker/picker";
+import CustomPicker from "@/components/CustomPicker";
 
 type CategoryKey = "deep" | "study" | "gym" | "social" | "rest" | "";
 
@@ -48,6 +47,9 @@ export default function DayScreen() {
       setActivities((prev) => [newItem, ...prev]);
     }
 
+    setCategory("");
+    setHours("");
+
   }
 
   const handleDelete = (id: string) => {
@@ -56,6 +58,8 @@ export default function DayScreen() {
 
   const handleReset=()=>{
     setActivities([]);
+    setCategory("");
+    setHours("");
   }
 
   return (
@@ -76,18 +80,14 @@ export default function DayScreen() {
 
           <Text style={styles.label}>Category</Text>
           <View style={styles.pickerOuter}>
-            <View style={styles.pickerInner}>
-              <Picker
-                selectedValue={category}
-                onValueChange={(v) => setCategory(v)}
-                style={styles.picker}
-                dropdownIconColor="#111827"
-              >
-                {CATEGORIES.map((c) => (
-                  <Picker.Item key={c.key} label={c.label} value={c.key}/>
-                ))}
-              </Picker>
-            </View>
+            <CustomPicker
+              selectedValue={category}
+              onValueChange={(v) => setCategory(v as CategoryKey)}
+              options={CATEGORIES.map((c) => ({
+                label: c.label,
+                value: c.key,
+              }))}
+            />
           </View>
 
           <Text style={[styles.label, {marginTop: 16}]}>Amount of hours</Text>
