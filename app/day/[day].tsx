@@ -1,10 +1,18 @@
 import {View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Alert} from "react-native";
 import {router, useLocalSearchParams} from "expo-router";
-import {useState} from "react";
-import {DAYS} from "@/app/(tabs)";
+import {useEffect, useState} from "react";
 import CustomPicker from "@/components/CustomPicker";
+import {createActivity, deleteActivity, fetchActivities} from "@/lib/api/activities";
 
-type CategoryKey = "deep" | "study" | "gym" | "social" | "rest" | "";
+export type CategoryKey = "deep" | "study" | "gym" | "social" | "rest" | "";
+
+export type Activity={
+  id:string,
+  date: string,
+  category: CategoryKey,
+  hours: number,
+  created_at: string,
+}
 
 const CATEGORIES: { key: CategoryKey; label: string }[] = [
   {key: "deep", label: "Deep Work"},
@@ -18,14 +26,15 @@ export default function DayScreen() {
   const {day} = useLocalSearchParams();
   const [category, setCategory] = useState<CategoryKey>("");
   const [hours, setHours] = useState<string>("");
+  const[activities, setActivities] = useState<Activity[]>([]);
 
+  const selectedDay= new Date(day as string);
+  const dayNum=selectedDay.getDate();
+  const date = selectedDay.toISOString().split("T")[0];
 
-  const selectedDay = DAYS.find((d) => d.day === Number(day));
-  const PREVIEW_ITEMS = [
-    {id: "1", category: "deep" as CategoryKey, hours: "4h"},
-    {id: "2", category: "gym" as CategoryKey, hours: "1.5h"},
-  ];
-  const [activities, setActivities] = useState(PREVIEW_ITEMS);
+  useEffect(() => {
+    fetchActivities(selectedDay);
+  }, [selectedDay])
 
   const handleAdd = () => {
 
@@ -40,11 +49,11 @@ export default function DayScreen() {
       return;
     } else {
       const newItem = {
-        id: String(Date.now()),
+        date: date,
         category: category,
-        hours: hours,
+        hours: numericHours,
       }
-      setActivities((prev) => [newItem, ...prev]);
+      createActivity(newItem);
     }
 
     setCategory("");
@@ -53,7 +62,7 @@ export default function DayScreen() {
   }
 
   const handleDelete = (id: string) => {
-    setActivities((prev) => prev.filter((item) => item.id !== id));
+    deleteActivity(id);
   }
 
   const handleReset=()=>{
@@ -70,8 +79,8 @@ export default function DayScreen() {
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
 
-        <Text style={styles.title}>Day {selectedDay?.day}</Text>
-        <Text style={styles.total}>Totally {selectedDay?.hours}</Text>
+        <Text style={styles.title}>Day {dayNum}</Text>
+        <Text style={styles.total}>Totally {}</Text>
 
         <View style={styles.divider}/>
 

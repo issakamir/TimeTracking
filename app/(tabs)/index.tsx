@@ -1,6 +1,7 @@
-import React from "react";
+import React, {useState} from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import {router} from "expo-router";
+import {getDaysInMonth, generateMonth} from "@/utilis/utils";
 
 const CATEGORIES = [
   { key: "deep", label: "Deep Work" },
@@ -10,14 +11,27 @@ const CATEGORIES = [
   { key: "rest", label: "Rest" },
 ];
 
-export const DAYS = Array.from({ length: 28 }, (_, i) => {
-  const day = i + 1;
-  const level = [1, 2, 3, 2, 1, 2, 3][i % 7];
-  const hours = [5.5, 5, 9, 6, 6, 5, 8][i % 7];
-  return { day, level, hours };
-});
-
 export default function HomeScreen() {
+  const today=new Date();
+
+  const[currentYear, setCurrentYear]= useState(today.getFullYear());
+  const[currentMonth, setCurrentMonth]= useState(today.getMonth());
+
+  const monthData=generateMonth(currentYear, currentMonth);
+
+  const MONTHS= [
+    "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+  ];
+
+  const firstWeekDay = monthData[0]?.weekDay ?? 0;
+
+  const leadingEmpty = Array.from({ length: firstWeekDay });
+
+  const totalCells = leadingEmpty.length + monthData.length;
+  const trailingEmpty = Array.from({
+    length: totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7),
+  });
+
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.header}>
@@ -51,7 +65,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.weekdays}>
-          {["S", "M", "T", "W", "T", "F", "S"].map((d) => (
+          {["M","T", "W", "T", "F", "S", "S"].map((d) => (
             <Text key={d} style={styles.weekdayText}>
               {d}
             </Text>
@@ -59,28 +73,20 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.grid}>
-          {DAYS.map((d) => (
-            <Pressable
-              key={d.day}
-              style={[
-                styles.dayCell,
-                d.level === 0 && styles.level0,
-                d.level === 1 && styles.level1,
-                d.level === 2 && styles.level2,
-                d.level === 3 && styles.level3,
-              ]}
-              onPress={()=>{router.push(`/day/${d.day}`)}}
-            >
-              <Text style={styles.dayNum}>{d.day}</Text>
-              <Text style={styles.dayHours}>{d.hours}h</Text>
-            </Pressable>
+          {leadingEmpty.map((_, i) => (
+            <View key={`lead-&{i}`} style={[styles.dayCell, styles.emptyCell]}></View>
           ))}
 
-          {Array.from({ length: 7 }).map((_, i) => (
-            <View key={`empty-${i}`} style={[styles.dayCell, styles.emptyCell]}>
-              <Text style={[styles.dayNum, styles.emptyText]} />
-              <Text style={[styles.dayHours, styles.emptyText]} />
-            </View>
+          {monthData.map((d) => (
+            <Pressable
+            key={d.date}
+            style={styles.dayCell}
+            onPress={() => {router.push(`/day/${d.date}`)}}>
+              <Text style={styles.dayNum}>{d.day}</Text>
+            </Pressable>
+          ))}
+          {trailingEmpty.map((_, i) => (
+            <View key={`trail-${i}`} style={[styles.dayCell, styles.emptyCell]} />
           ))}
         </View>
       </View>
