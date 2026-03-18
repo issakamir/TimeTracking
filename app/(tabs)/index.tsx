@@ -1,335 +1,457 @@
-import React, { useState } from "react";
-import {View, Text, StyleSheet, Pressable, ScrollView, Dimensions,} from "react-native";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  Dimensions,
+  Animated,
+  PanResponder,
+} from "react-native";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { generateMonth } from "@/utilis/utils";
+import {
+  CATEGORIES,
+  DEMO_ACTIVE,
+  GOAL_PROGRESS,
+  MONTHLY_CURRENT,
+  MONTHLY_GOAL,
+  MONTHS,
+  WEEKDAYS
+} from "@/constants/mockData";
+import {C, CARD_PAD, CIRCLE, PADDING} from "@/constants/theme";
+import {InsightCard} from "@/components/Home/InsightCard";
 
-const SW = Dimensions.get("window").width;
-const CELL = Math.floor((SW - 40) / 7);
-
-const MONTHS = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
-
-const WEEKDAYS = ["M","T","W","T","F","S","S"];
-
-const INTENSITY: Record<string, 0 | 1 | 2 | 3 | 4> = {
-  "2026-03-02": 1,
-  "2026-03-05": 2,
-  "2026-03-10": 3,
-  "2026-03-12": 4,
-  "2026-03-15": 2,
-  "2026-03-17": 3,
-};
-
-const LEVEL_BG = ["#F3F4F6", "#DCFCE7", "#86EFAC", "#4ADE80", "#16A34A"];
-const LEVEL_TEXT = ["#6B7280", "#166534", "#15803D", "#14532D", "#F0FDF4"];
-
-const SUMMARY = [
-  { label: "Deep Work", value: "38h", progress: 0.65 },
-  { label: "Rest",      value: "31h", progress: 0.55 },
-  { label: "Social",    value: "25h", progress: 0.45 },
-  { label: "Study",     value: "19h", progress: 0.35 },
-  { label: "Gym",       value: "12h", progress: 0.22 },
-];
 
 export default function HomeScreen() {
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const today    = new Date();
+  const todayStr = today.toISOString().split("T")[0];
 
-  const monthData = generateMonth(year, month);
+  const [year, setYear]                 = useState(today.getFullYear());
+  const [month, setMonth]               = useState(today.getMonth());
+  const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
 
-  const firstWeekDay = monthData[0]?.weekDay ?? 0;
-  const leadingCount = firstWeekDay === 0 ? 6 : firstWeekDay - 1;
-  const leading = Array.from({ length: leadingCount });
-  const total = leadingCount + monthData.length;
-  const trailing = Array.from({ length: total % 7 === 0 ? 0 : 7 - (total % 7) });
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const navRef   = useRef({ prev: () => {}, next: () => {} });
+
+  function animateChange(fn: () => void) {
+    Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
+      fn();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    });
+  }
 
   function prevMonth() {
-    if (month === 0) { setMonth(11); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (month === 11) { setMonth(0); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
+    animateChange(() => {
+      setSelectedDate(null);
+      if (month === 0) { setMonth(11); setYear(y => y - 1); }
+      else setMonth(m => m - 1);
+    });
   }
 
-  function isTodayDate(date: string) {
-    return (
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
-      today.getDate() === parseInt(date.split("-")[2], 10)
-    );
+  function nextMonth() {
+    animateChange(() => {
+      setSelectedDate(null);
+      if (month === 11) { setMonth(0); setYear(y => y + 1); }
+      else setMonth(m => m + 1);
+    });
   }
+
+  navRef.current.prev = prevMonth;
+  navRef.current.next = nextMonth;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 15 && Math.abs(gs.dy) < Math.abs(gs.dx),
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dx < -50)     navRef.current.next();
+        else if (gs.dx > 50) navRef.current.prev();
+      },
+    })
+  ).current;
+
+  const monthData     = generateMonth(year, month);
+  const firstWeekDay  = monthData[0]?.weekDay ?? 0;
+  const leadingCount = firstWeekDay === 0 ? 6 : firstWeekDay - 1;
+  const total         = leadingCount + monthData.length;
+  const trailingCount = total % 7 === 0 ? 0 : 7 - (total % 7);
+
+  const allCells: (typeof monthData[0] | null)[] = [
+    ...Array(leadingCount).fill(null),
+    ...monthData,
+    ...Array(trailingCount).fill(null),
+  ];
+  const weeks: (typeof monthData[0] | null)[][] = [];
+  for (let i = 0; i < allCells.length; i += 7) weeks.push(allCells.slice(i, i + 7));
+
+  const totalHours = CATEGORIES.reduce((acc, c) => acc + c.hours, 0);
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.page}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>Life Heatmap</Text>
-        <Text style={styles.subtitle}>Track your daily patterns</Text>
+    <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Overview</Text>
+        <Text style={styles.headerSub}>{MONTHS[today.getMonth()]} {today.getFullYear()}</Text>
       </View>
 
-      <View style={styles.monthNav}>
-        <Pressable onPress={prevMonth} style={styles.navBtn} hitSlop={12}>
-          <Text style={styles.navArrow}>‹</Text>
-        </Pressable>
-        <View style={styles.monthLabelBlock}>
-          <Text style={styles.monthLabel}>{MONTHS[month]}</Text>
-          <Text style={styles.yearLabel}>{year}</Text>
+      <InsightCard streak={18} monthlyHours={125} monthlyGoal={160} dailyAvg={6.4}/>
+
+
+      <View style={styles.card} {...panResponder.panHandlers}>
+        <View style={styles.monthNav}>
+          <Pressable onPress={prevMonth} style={styles.navBtn}>
+            <Ionicons name="chevron-back" size={16} color={C.textSec} />
+          </Pressable>
+          <Text style={styles.monthName}>{MONTHS[month]} {year}</Text>
+          <Pressable onPress={nextMonth} style={styles.navBtn}>
+            <Ionicons name="chevron-forward" size={16} color={C.textSec} />
+          </Pressable>
         </View>
-        <Pressable onPress={nextMonth} style={styles.navBtn} hitSlop={12}>
-          <Text style={styles.navArrow}>›</Text>
-        </Pressable>
+
+        <View style={styles.weekdayRow}>
+          {WEEKDAYS.map((d, i) => (
+            <View key={i} style={styles.dayCol}>
+              <Text style={styles.weekdayText}>{d}</Text>
+            </View>
+          ))}
+        </View>
+
+        <Animated.View style={{ opacity: fadeAnim }}>
+          {weeks.map((week, wi) => (
+            <View key={wi} style={styles.weekRow}>
+              {week.map((d, di) => {
+                if (!d) return <View key={di} style={styles.dayCol} />;
+
+                const isActive   = DEMO_ACTIVE.has(d.date);
+                const isToday    = d.date === todayStr;
+                const isSelected = selectedDate === d.date;
+
+                return (
+                  <Pressable
+                    key={d.date}
+                    style={({ pressed }) => [styles.dayCol, pressed && { opacity: 0.6 }]}
+                    onPress={() => router.push(`/day/${d.date}`)}
+                  >
+                    <View style={[
+                      styles.dayCircle,
+                      isActive && !isSelected && !isToday && styles.dayCircleActive,
+                      isToday  && !isSelected             && styles.dayCircleToday,
+                      isSelected                          && styles.dayCircleSelected,
+                    ]}>
+                      <Text style={[
+                        styles.dayNum,
+                        isActive && !isSelected && !isToday && styles.dayNumActive,
+                        isToday  && !isSelected            && styles.dayNumToday,
+                        isSelected                         && styles.dayNumSelected,
+                      ]}>
+                        {d.day}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </Animated.View>
+
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: C.accent }]} />
+            <Text style={styles.legendLabel}>logged day</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: "transparent", borderWidth: 1.5, borderColor: C.blue4 }]} />
+            <Text style={styles.legendLabel}>today</Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.weekdayRow}>
-        {WEEKDAYS.map((d, i) => (
-          <Text key={i} style={[styles.weekdayText, i >= 5 && styles.weekdayWeekend]}>
-            {d}
-          </Text>
-        ))}
-      </View>
+      {/* Categories Card */}
+      <View style={styles.card}>
+        <View style={styles.categoriesHeader}>
+          <Text style={styles.categoriesTitle}>Categories</Text>
+          <Text style={styles.categoriesSubtitle}>This Month</Text>
+        </View>
 
-      <View style={styles.grid}>
-        {leading.map((_, i) => (
-          <View key={`l-${i}`} style={styles.emptyCell} />
-        ))}
-
-        {monthData.map((d) => {
-          const lvl = INTENSITY[d.date] ?? 0;
-          const isWeekend = d.weekDay === 0 || d.weekDay === 6;
-          const isToday = isTodayDate(d.date);
+        {CATEGORIES.map((cat) => {
+          const pct = Math.round((cat.hours / totalHours) * 100);
           return (
-            <Pressable
-              key={d.date}
-              style={[
-                styles.dayCell,
-                { backgroundColor: LEVEL_BG[lvl] },
-                isToday && styles.todayCell,
-              ]}
-              onPress={() => router.push(`/day/${d.date}`)}
-            >
-              <Text
-                style={[
-                  styles.dayNum,
-                  { color: LEVEL_TEXT[lvl] },
-                  isWeekend && lvl === 0 && styles.weekendText,
-                  isToday && styles.todayText,
-                ]}
-              >
-                {d.day}
-              </Text>
-            </Pressable>
+            <View key={cat.label} style={styles.categoryRow}>
+              <View style={[styles.categoryIcon, { backgroundColor: cat.color + "18" }]}>
+                <Ionicons name={cat.icon as any} size={16} color={cat.color} />
+              </View>
+              <View style={styles.categoryContent}>
+                <View style={styles.categoryTopRow}>
+                  <Text style={styles.categoryName}>{cat.label}</Text>
+                  <View style={styles.categoryMeta}>
+                    <Text style={styles.categoryPct}>{pct}%</Text>
+                    <Text style={styles.categoryHours}>{cat.hours}h</Text>
+                  </View>
+                </View>
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: cat.color }]} />
+                </View>
+              </View>
+            </View>
           );
         })}
 
-        {trailing.map((_, i) => (
-          <View key={`t-${i}`} style={styles.emptyCell} />
-        ))}
+        <View style={styles.totalDivider} />
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalValue}>{totalHours}h</Text>
+        </View>
       </View>
 
-      <View style={styles.legendRow}>
-        <Text style={styles.legendHint}>Less</Text>
-        {LEVEL_BG.map((bg, i) => (
-          <View key={i} style={[styles.legendDot, { backgroundColor: bg }]} />
-        ))}
-        <Text style={styles.legendHint}>More</Text>
-      </View>
-
-      <View style={styles.divider} />
-      <Text style={styles.sectionLabel}>MONTHLY SUMMARY</Text>
-
-      {SUMMARY.map((s) => (
-        <SummaryRow key={s.label} {...s} />
-      ))}
+      <Text style={styles.hint}>Hold a day to open its details</Text>
     </ScrollView>
   );
 }
 
-function SummaryRow({ label, value, progress }: { label: string; value: string; progress: number }) {
-  return (
-    <View style={styles.summaryRow}>
-      <View style={styles.summaryTop}>
-        <Text style={styles.summaryLabel}>{label}</Text>
-        <Text style={styles.summaryValue}>{value}</Text>
-      </View>
-      <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width: `${Math.round(progress * 100)}%` }]} />
-      </View>
-    </View>
-  );
-}
-
+// ── Styles ───────────────────────────────────────────────────
 const styles = StyleSheet.create({
   page: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 40,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: PADDING,
+    paddingTop: 64,
+    paddingBottom: 48,
+    backgroundColor: C.bg,
+    gap: 14,
   },
 
-  header: {
-    marginBottom: 28,
+  // Header
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 2,
   },
-  title: {
+  header: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: C.text,
     letterSpacing: -0.5,
   },
-  subtitle: {
+  headerSub: {
     fontSize: 13,
-    color: "#9CA3AF",
-    marginTop: 3,
-    fontWeight: "500",
+    color: C.textTert,
+  },
+
+  card: {
+    backgroundColor: C.card,
+    borderRadius: 24,
+    padding: CARD_PAD,
   },
 
   monthNav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  monthLabelBlock: {
-    alignItems: "center",
-  },
-  monthLabel: {
-    fontSize: 17,
+  monthName: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: C.text,
     letterSpacing: -0.3,
   },
-  yearLabel: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginTop: 1,
-  },
   navBtn: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    backgroundColor: C.divider,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
-    backgroundColor: "#F9FAFB",
-  },
-  navArrow: {
-    fontSize: 22,
-    color: "#374151",
-    fontWeight: "400",
-    lineHeight: 26,
   },
 
   weekdayRow: {
     flexDirection: "row",
-    marginBottom: 6,
+    marginBottom: 8,
+    paddingHorizontal: 0, // Убедитесь, что здесь нет внутренних отступов
   },
   weekdayText: {
-    width: CELL,
-    textAlign: "center",
-    fontSize: 11,
+    // flex: 1 больше не нужен здесь, так как он есть в dayCol
+    fontSize: 12,
     fontWeight: "600",
-    color: "#D1D5DB",
-    letterSpacing: 0.5,
+    color: C.textTert,
+    textAlign: "center",
   },
-  weekdayWeekend: {
-    color: "#E5E7EB",
+  dayCol: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 3,
   },
 
-  grid: {
+  // Grid
+  weekRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    marginBottom: 6,
   },
-  dayCell: {
-    width: CELL,
-    height: CELL,
-    borderRadius: 8,
+  dayCircle: {
+    width: CIRCLE,
+    height: CIRCLE,
+    borderRadius: CIRCLE / 2,
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyCell: {
-    width: CELL,
-    height: CELL,
+  dayCircleActive: {
+    backgroundColor: C.accent,
   },
-  todayCell: {
-    borderWidth: 1.5,
-    borderColor: "#16A34A",
+  dayCircleToday: {
+    borderWidth: 2,
+    borderColor: C.blue4,
+  },
+  dayCircleSelected: {
+    backgroundColor: C.selected,
+    shadowColor: C.selected,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
   dayNum: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "500",
+    color: C.textTert,
   },
-  weekendText: {
-    color: "#D1D5DB",
+  dayNumActive: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
-  todayText: {
-    color: "#16A34A",
+  dayNumToday: {
+    color: C.blue4,
+    fontWeight: "700",
+  },
+  dayNumSelected: {
+    color: "#FFFFFF",
     fontWeight: "700",
   },
 
-  legendRow: {
+  legend: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 16,
+    marginTop: 14,
     justifyContent: "flex-end",
-    gap: 4,
-    marginTop: 10,
-    marginBottom: 4,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
-  legendHint: {
+  legendLabel: {
     fontSize: 10,
-    color: "#9CA3AF",
-    fontWeight: "500",
+    color: C.textTert,
   },
 
-  divider: {
-    height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 24,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: "#9CA3AF",
-    marginBottom: 16,
-  },
-
-  summaryRow: {
-    marginBottom: 16,
-    gap: 7,
-  },
-  summaryTop: {
+  // Categories
+  categoriesHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
+    marginBottom: 16,
   },
-  summaryLabel: {
+  categoriesTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: C.text,
+    letterSpacing: -0.3,
+  },
+  categoriesSubtitle: {
+    fontSize: 11,
+    color: C.textTert,
+  },
+  categoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 7,
+  },
+  categoryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryContent: {
+    flex: 1,
+    gap: 6,
+  },
+  categoryTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryName: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1A1A1A",
+    color: C.text,
   },
-  summaryValue: {
+  categoryMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  categoryPct: {
     fontSize: 12,
-    color: "#9CA3AF",
-    fontWeight: "500",
+    color: C.textTert,
   },
-  barTrack: {
+  categoryHours: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: C.text,
+    minWidth: 34,
+    textAlign: "right",
+  },
+  progressTrack: {
     height: 4,
-    borderRadius: 999,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: C.divider,
+    borderRadius: 2,
     overflow: "hidden",
   },
-  barFill: {
+  progressFill: {
     height: 4,
-    borderRadius: 999,
-    backgroundColor: "#4ADE80",
+    borderRadius: 2,
+  },
+
+  // Total
+  totalDivider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginTop: 10,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 10,
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: C.textSec,
+  },
+  totalValue: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+
+  // Hint
+  hint: {
+    fontSize: 11,
+    color: C.textTert,
+    textAlign: "center",
+    marginTop: -4,
   },
 });

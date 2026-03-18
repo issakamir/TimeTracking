@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase"; // поправь путь если нужно
+import { supabase } from "@/lib/supabase";
 import {StyleSheet, View, Alert, Text, TextInput, Pressable,} from "react-native";
 import { Session } from "@supabase/supabase-js";
 
@@ -48,7 +48,7 @@ export default function Account({ session }: { session: Session }) {
         username,
         website,
         avatar_url: avatarUrl,
-        updated_at: new Date(),
+        updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase.from("profiles").upsert(updates);
