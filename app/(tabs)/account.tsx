@@ -1,19 +1,16 @@
-import { useState, useEffect } from "react";
+import {useState, useEffect, useCallback} from "react";
 import { supabase } from "@/lib/supabase";
-import {StyleSheet, View, Alert, Text, TextInput, Pressable,} from "react-native";
-import { Session } from "@supabase/supabase-js";
+import {StyleSheet, View, Alert, Text, TextInput, Pressable, ActivityIndicator,} from "react-native";
+import {useAuth} from "@/lib/api/AuthProvider";
 
-export default function Account({ session }: { session: Session }) {
+export default function Account() {
+  const {session, loading:authLoading}=useAuth();
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [website, setWebsite] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
 
-  useEffect(() => {
-    if (session) getProfile();
-  }, [session]);
-
-  async function getProfile() {
+  const getProfile=useCallback(async ()=>{
     try {
       setLoading(true);
       if (!session?.user) throw new Error("No user on the session!");
@@ -36,7 +33,11 @@ export default function Account({ session }: { session: Session }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (session) getProfile();
+  }, [session, getProfile]);
 
   async function updateProfile() {
     try {
@@ -61,6 +62,9 @@ export default function Account({ session }: { session: Session }) {
       setLoading(false);
     }
   }
+
+
+  if(authLoading) return <ActivityIndicator style={{ flex: 1 }} />;
 
   return (
     <View style={styles.container}>

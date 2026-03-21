@@ -2,10 +2,11 @@ import {supabase} from "@/lib/supabase";
 import {Activity, CategoryKey} from "@/app/day/[day]";
 
 export async function fetchActivities(date: Date) {
+  const formattedDate=date.toISOString().split("T")[0];
   const {data, error}=await supabase
     .from("activities")
     .select("id, date, category, hours, created_at")
-    .eq("date", date)
+    .eq("date", formattedDate)
     .order("created_at", {ascending:false})
 
   if(error) throw error;
@@ -40,7 +41,7 @@ export async function updateActivity(id:string, patch:Partial<Pick<Activity, "ca
 }
 
 export async function deleteActivity(id:string) {
-  const {data, error}=await supabase
+  const {error}=await supabase
     .from("activities")
     .delete()
     .eq("id", id)
