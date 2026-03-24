@@ -8,11 +8,18 @@ import Auth from "@/components/Auth";
 type Data={
   session: Session | null;
   loading: boolean;
+  profile: Profile | null;
+}
+
+type Profile={
+  username: string | null,
+  avatar_url: string | null,
 }
 
 const AuthContext=createContext<Data | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const[loading, setLoading] = useState(true);
 
@@ -31,6 +38,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   },[]);
 
+  useEffect(()=>{
+    if (!session?.user){
+      setProfile(null);
+      return
+    };
+
+    async function fetchUser() {
+      try {
+        const {data, error} = await supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", session?.user.id)
+          .single();
+
+        if(error) throw error;
+        if(data){
+          setProfile(data);
+        }
+      }
+      catch(e){
+        console.error("Error fetching user");}
+    };
+    fetchUser();
+  }, [session?.user?.id]);
+
 
   if (loading) return <View />;
 
@@ -38,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   return(
-    <AuthContext.Provider value={{session, loading}}>
+    <AuthContext.Provider value={{session, loading, profile}}>
       {children}
     </AuthContext.Provider>
   )

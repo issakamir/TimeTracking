@@ -22,15 +22,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-      name="account"
+      name="settings"
       options={{
-        title: 'Profile',
-        tabBarIcon:() => (
-          <Image
-            source={require('@/assets/icons/user.png')}
-            style={{width:24, height:24}}
-          />
-        )
+        title: 'Settings',
       }}/>
     </Tabs>
 
