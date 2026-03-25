@@ -1,50 +1,63 @@
-import {View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Alert} from "react-native";
-import {router, useLocalSearchParams} from "expo-router";
-import {useEffect, useState} from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Alert,
+} from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import CustomPicker from "@/components/CustomPicker";
-import {createActivity, deleteActivity, fetchActivities} from "@/lib/api/activities";
+import {
+  createActivity,
+  deleteActivity,
+  fetchActivities,
+} from "@/lib/api/activities";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 export type CategoryKey = "deep" | "study" | "gym" | "social" | "rest" | "";
 
-export type Activity={
-  id:string,
-  date: string,
-  category: CategoryKey,
-  hours: number,
-  created_at: string,
-}
+export type Activity = {
+  id: string;
+  date: string;
+  category: CategoryKey;
+  hours: number;
+  created_at: string;
+};
 
 const CATEGORIES: { key: CategoryKey; label: string }[] = [
-  {key: "deep", label: "Deep Work"},
-  {key: "study", label: "Study"},
-  {key: "gym", label: "Gym"},
-  {key: "social", label: "Social"},
-  {key: "rest", label: "Rest"},
+  { key: "deep", label: "Deep Work" },
+  { key: "study", label: "Study" },
+  { key: "gym", label: "Gym" },
+  { key: "social", label: "Social" },
+  { key: "rest", label: "Rest" },
 ];
 
 export default function DayScreen() {
-  const {day} = useLocalSearchParams();
+  const { day } = useLocalSearchParams();
   const [category, setCategory] = useState<CategoryKey>("");
   const [hours, setHours] = useState<string>("");
-  const[activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
 
-  const selectedDay= new Date(day as string);
-  const dayNum=selectedDay.getDate();
+  const selectedDay = new Date(day as string);
+  const dayNum = selectedDay.getDate();
   const date = selectedDay.toISOString().split("T")[0];
 
   useEffect(() => {
     fetchActivities(selectedDay);
-  }, [selectedDay])
+  }, [selectedDay]);
 
   const handleAdd = () => {
-
-    if(hours.trim() ===""){
+    if (hours.trim() === "") {
       Alert.alert("This field shouldn't be empty");
       return;
     }
 
     const numericHours = Number(hours);
-    if(!numericHours || numericHours <= 0) {
+    if (!numericHours || numericHours <= 0) {
       Alert.alert("Should be more than 0");
       return;
     } else {
@@ -52,234 +65,390 @@ export default function DayScreen() {
         date: date,
         category: category,
         hours: numericHours,
-      }
+      };
       createActivity(newItem);
     }
 
     setCategory("");
     setHours("");
-
-  }
+  };
 
   const handleDelete = (id: string) => {
     deleteActivity(id);
-  }
+  };
 
-  const handleReset=()=>{
+  const handleReset = () => {
     setActivities([]);
     setCategory("");
     setHours("");
-  }
+  };
 
   return (
-    <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.content}>
-
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
-
-        <Text style={styles.title}>Day {dayNum}</Text>
-        <Text style={styles.total}>Totally {}</Text>
-
-        <View style={styles.divider}/>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Add an activity</Text>
-
-          <Text style={styles.label}>Category</Text>
-          <View style={styles.pickerOuter}>
-            <CustomPicker
-              selectedValue={category}
-              onValueChange={(v) => setCategory(v as CategoryKey)}
-              options={CATEGORIES.map((c) => ({
-                label: c.label,
-                value: c.key,
-              }))}
-            />
-          </View>
-
-          <Text style={[styles.label, {marginTop: 16}]}>Amount of hours</Text>
-
-          <View style={styles.row}>
-            <TextInput
-              value={hours}
-              onChangeText={setHours}
-              keyboardType="decimal-pad"
-              placeholder=""
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-            />
-
-            <Pressable style={styles.addBtn}
-                       onPress={handleAdd}>
-              <Text style={styles.addBtnText}>＋ Add</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.root}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn}>
+              <Feather name="arrow-left" size={24} color="#20297A" />
             </Pressable>
+
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Day {dayNum}</Text>
+              <Text style={styles.headerSub}>{date}</Text>
+            </View>
+
+            <View style={styles.headerPlaceholder} />
           </View>
-        </View>
 
-        {activities.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Activities</Text>
+          <View style={styles.insightCard}>
+            <Text style={styles.insightLabel}>DAY SUMMARY</Text>
+            <Text style={styles.totalText}>Totally {}</Text>
+            <Text style={styles.insightHint}>
+              Add activities and track how your day was spent
+            </Text>
+          </View>
 
-            <View style={{gap: 12, marginTop: 8}}>
-              {activities.map((item) => (
-                <View key={item.id} style={styles.item}>
-                  <View style={styles.dot}/>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Add Activity</Text>
 
-                  <View style={{flex: 1}}>
-                    <Text style={styles.itemTitle}>
-                      {CATEGORIES.find((c) => c.key === item.category)?.label}
-                    </Text>
-                    <Text style={styles.itemSub}>{item.hours}</Text>
-                  </View>
+            <Text style={styles.label}>Category</Text>
+              <CustomPicker
+                selectedValue={category}
+                onValueChange={(v) => setCategory(v as CategoryKey)}
+                options={CATEGORIES.map((c) => ({
+                  label: c.label,
+                  value: c.key,
+                }))}
+              />
 
-                  <Pressable style={styles.trashBtn}
-                             onPress={() => handleDelete(item.id)}>
-                    <Text style={styles.trash}>🗑️</Text>
-                  </Pressable>
-                </View>
-              ))}
+            <Text style={[styles.label, styles.labelSpacing]}>Hours</Text>
+
+            <View style={styles.inputRow}>
+              <TextInput
+                value={hours}
+                onChangeText={setHours}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor="#A5AEC4"
+                style={styles.input}
+              />
+
+              <Pressable style={styles.addBtn} onPress={handleAdd}>
+                <Ionicons name="add" size={18} color="#FFFFFF" />
+                <Text style={styles.addBtnText}>Add</Text>
+              </Pressable>
             </View>
           </View>
-        )}
 
-      </ScrollView>
-      <View style={styles.bottomBar}>
-        <Pressable style={[styles.bottomBtn, styles.resetBtn]}
-        onPress={handleReset}>
-          <Text style={styles.resetText}>↻ Reset</Text>
-        </Pressable>
+          {activities.length > 0 && (
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Activities</Text>
 
-        <Pressable style={[styles.bottomBtn, styles.saveBtn]}>
-          <Text style={styles.saveText}>Save</Text>
-        </Pressable>
+              <View style={styles.activitiesList}>
+                {activities.map((item) => (
+                  <View key={item.id} style={styles.item}>
+                    <View style={styles.itemLeft}>
+                      <View style={styles.dot} />
+                      <View>
+                        <Text style={styles.itemTitle}>
+                          {CATEGORIES.find((c) => c.key === item.category)?.label}
+                        </Text>
+                        <Text style={styles.itemSub}>{item.hours} h</Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      style={styles.trashBtn}
+                      onPress={() => handleDelete(item.id)}
+                    >
+                      <Feather name="trash-2" size={18} color="#D84D4D" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.bottomBar}>
+          <Pressable
+            style={[styles.bottomBtn, styles.resetBtn]}
+            onPress={handleReset}
+          >
+            <Text style={styles.resetText}>Reset</Text>
+          </Pressable>
+
+          <Pressable style={[styles.bottomBtn, styles.saveBtn]}>
+            <Text style={styles.saveText}>Save</Text>
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  root: {flex: 1, backgroundColor: "#FFFFFF"},
-  content: {padding:18, paddingBottom: 120, marginTop:25},
-
-  backBtn: {width: 44, height: 44, justifyContent: "center"},
-  backArrow: {fontSize: 26, fontWeight: "800", color: "#111827"},
-
-  title: {fontSize: 30, fontWeight: "900", marginTop: 8, color: "#111827"},
-  total: {fontSize: 18, color: "#6B7280", marginTop: 10, fontWeight: "700"},
-
-  divider: {height: 1, backgroundColor: "#E5E7EB", marginVertical: 18},
-
-  card: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: "#FFFFFF",
-    marginBottom: 16,
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F3F6FC",
   },
 
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    letterSpacing: 0.6,
-    color: "#111827",
+  root: {
+    flex: 1,
+    backgroundColor: "#F3F6FC",
+  },
+
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 120,
+  },
+
+  header: {
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "#E9EEF8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerCenter: {
+    alignItems: "center",
+  },
+
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#16224A",
+    letterSpacing: -0.3,
+  },
+
+  headerSub: {
+    marginTop: 2,
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#91A0C2",
+  },
+
+  headerPlaceholder: {
+    width: 40,
+    height: 40,
+  },
+
+  insightCard: {
+    backgroundColor: "#071D49",
+    borderRadius: 28,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    marginBottom: 18,
+  },
+
+  insightLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 2,
+    color: "#7F95C8",
     marginBottom: 14,
   },
 
-  label: {
-    fontSize: 13,
-    fontWeight: "900",
-    color: "#6B7280",
-    letterSpacing: 0.6,
+  totalText: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: -0.8,
   },
 
-  pickerOuter: {
-    marginTop: 10,
-    borderWidth: 2,
-    borderColor: "#22C55E",
-    borderRadius: 18,
-    padding: 2,
+  insightHint: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#93A3C7",
   },
-  pickerInner: {
-    borderRadius: 16,
-    overflow: "hidden",
+
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#17244D",
+    letterSpacing: -0.5,
+    marginBottom: 18,
+  },
+
+  label: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#9AA6C0",
+    marginBottom: 10,
+    marginLeft: 2,
+  },
+
+  labelSpacing: {
+    marginTop: 16,
+  },
+
+  fieldWrap: {
+    minHeight: 58,
+    borderWidth: 1.2,
+    borderColor: "#DCE3F0",
+    borderRadius: 22,
+    justifyContent: "center",
+    paddingHorizontal: 10,
     backgroundColor: "#FFFFFF",
   },
-  picker: {
-    ...(Platform.OS === "ios" ? {height: 44} : {height: 52}),
-  },
 
-  row: {flexDirection: "row", gap: 12, alignItems: "center", marginTop: 10},
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
 
   input: {
     flex: 1,
-    height: 54,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 14,
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#111827",
+    height: 58,
+    borderWidth: 1.2,
+    borderColor: "#DCE3F0",
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#17203A",
     backgroundColor: "#FFFFFF",
   },
 
   addBtn: {
-    height: 54,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    backgroundColor: "#22C55E",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addBtnText: {color: "#FFFFFF", fontSize: 18, fontWeight: "900"},
-
-  item: {
+    height: 58,
+    minWidth: 112,
+    borderRadius: 22,
+    backgroundColor: "#2F6CF6",
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 18,
   },
-  dot: {width: 18, height: 18, borderRadius: 999, backgroundColor: "#16A34A"},
-  itemTitle: {fontSize: 18, fontWeight: "900", color: "#111827"},
-  itemSub: {marginTop: 6, fontSize: 16, color: "#6B7280", fontWeight: "800"},
 
-  trashBtn: {width: 44, height: 44, alignItems: "center", justifyContent: "center"},
-  trash: {fontSize: 18},
+  addBtnText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+
+  activitiesList: {
+    gap: 12,
+    marginTop: 6,
+  },
+
+  item: {
+    minHeight: 74,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FD",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  itemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    flex: 1,
+  },
+
+  dot: {
+    width: 14,
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: "#3F82FF",
+  },
+
+  itemTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#18244A",
+    letterSpacing: -0.2,
+  },
+
+  itemSub: {
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#8C9ABD",
+  },
+
+  trashBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#FFF0F0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+  },
 
   bottomBar: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    padding: 14,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 18,
+    backgroundColor: "#F3F6FC",
     flexDirection: "row",
     gap: 12,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
   },
+
   bottomBtn: {
     flex: 1,
-    height: 56,
-    borderRadius: 20,
+    height: 58,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
   },
 
-  resetBtn: {backgroundColor: "#FFFFFF", borderColor: "#E5E7EB"},
-  resetText: {fontSize: 18, fontWeight: "900", color: "#111827"},
+  resetBtn: {
+    backgroundColor: "#E9EEF8",
+  },
 
-  deleteBtn: {backgroundColor: "#EF4444", borderColor: "#EF4444"},
-  deleteText: {fontSize: 18, fontWeight: "900", color: "#FFFFFF"},
+  resetText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#20315F",
+  },
 
-  saveBtn: {backgroundColor: "#111827", borderColor: "#111827"},
-  saveText: {fontSize: 18, fontWeight: "900", color: "#FFFFFF"},
+  saveBtn: {
+    backgroundColor: "#1F2B7B",
+    shadowColor: "#1F2B7B",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+
+  saveText: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.3,
+  },
 });
