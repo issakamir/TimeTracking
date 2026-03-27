@@ -47,34 +47,68 @@ export default function DayScreen() {
   const date = selectedDay.toISOString().split("T")[0];
 
   useEffect(() => {
-    fetchActivities(selectedDay);
-  }, [selectedDay]);
+    const loadActivities = async () => {
+      try {
+        const data = await fetchActivities(new Date(day as string));
+        setActivities(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
-  const handleAdd = () => {
+    if (day) {
+      loadActivities();
+    }
+  }, [day]);
+
+  const handleAdd = async () => {
     if (hours.trim() === "") {
       Alert.alert("This field shouldn't be empty");
       return;
     }
 
+    if(!category){
+      Alert.alert("Choose a category");
+    }
     const numericHours = Number(hours);
     if (!numericHours || numericHours <= 0) {
       Alert.alert("Should be more than 0");
       return;
-    } else {
-      const newItem = {
-        date: date,
-        category: category,
-        hours: numericHours,
-      };
-      createActivity(newItem);
     }
 
-    setCategory("");
-    setHours("");
+    if (!category) {
+      Alert.alert("Select category");
+      return;
+    }
+
+    try {
+      const newItem = await createActivity({
+        date,
+        category,
+        hours: numericHours,
+      });
+
+      setActivities((prev) => [newItem, ...prev]);
+
+      setCategory("");
+      setHours("");
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error creating activity");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteActivity(id);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteActivity(id);
+
+      setActivities((prev) =>
+        prev.filter((item) => item.id !== id)
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Failed to delete");
+    }
   };
 
   const handleReset = () => {
