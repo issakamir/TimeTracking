@@ -5,101 +5,61 @@ import {
   StyleSheet,
   Image,
   Pressable,
-  Switch,
-  StatusBar,
+  StatusBar, ScrollView,
 } from 'react-native';
-import { Ionicons, Feather, AntDesign } from '@expo/vector-icons';
+import { Feather} from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {C} from "@/constants/theme";
 import {router} from "expo-router";
 import {useAuth} from "@/lib/api/AuthProvider";
+import {supabase} from "@/lib/supabase";
+import {SettingsRow} from "@/components/SettingsRow";
 
 export default function Settings() {
   const {profile}=useAuth();
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.container}>
-        <Text style={styles.title}>Settings</Text>
+      <ScrollView>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.container}>
+          <Text style={styles.title}>Settings</Text>
 
-        <View style={styles.profileRow}>
-          <View style={styles.profileLeft}>
-            <Image
-              source={{}}
-              style={styles.avatar}
-            />
-            <View style={styles.profileTextWrap}>
-              <Text style={styles.welcome}>Welcome</Text>
-              <Text style={styles.name}>{profile?.username}</Text>
+          <View style={styles.profileRow}>
+            <View style={styles.profileLeft}>
+              <Image
+                source={{}}
+                style={styles.avatar}
+              />
+              <View style={styles.profileTextWrap}>
+                <Text style={styles.welcome}>Welcome</Text>
+                <Text style={styles.name}>{profile?.username}</Text>
+              </View>
             </View>
+
+            <Pressable style={styles.logoutButton}
+            onPress={()=>{supabase.auth.signOut()}}>
+              <Feather name="log-out" size={23} color="#1B2670" />
+            </Pressable>
           </View>
 
-          <Pressable style={styles.logoutButton}>
-            <Feather name="log-out" size={23} color="#1B2670" />
-          </Pressable>
-        </View>
+          <View style={styles.topDivider} />
 
-        <View style={styles.topDivider} />
+          <View style={styles.list}>
+            <SettingsRow
+              icon={<Feather name="user" size={22} color="#A6A6AD" />}
+              title={"User Profile"}
+              onPress={()=>{router.push('/account/account')}}/>
 
-        <View style={styles.list}>
-          <Pressable style={styles.row}
-          onPress={() => router.push('/account/account')}>
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrap}>
-                <Feather name="user" size={22} color="#A6A6AD" />
-              </View>
-              <Text style={styles.rowText}>User Profile</Text>
-            </View>
-            <AntDesign name="right" size={18} color="#1B2670" />
-          </Pressable>
+            <View style={styles.divider} />
+            <SettingsRow
+              icon={ <Feather name="lock" size={22} color="#A6A6AD" />}
+              title={"Change Password"}/>
 
-          <View style={styles.divider} />
-
-          <Pressable style={styles.row}>
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrap}>
-                <Feather name="lock" size={22} color="#A6A6AD" />
-              </View>
-              <Text style={styles.rowText}>Change Password</Text>
-            </View>
-            <AntDesign name="right" size={18} color="#1B2670" />
-          </Pressable>
-
-          <View style={styles.divider} />
-
-          <Pressable style={styles.row}>
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrap}>
-                <Feather name="help-circle" size={22} color="#A6A6AD" />
-              </View>
-              <Text style={styles.rowText}>FAQs</Text>
-            </View>
-            <AntDesign name="right" size={18} color="#1B2670" />
-          </Pressable>
-
-          <View style={styles.divider} />
-
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrap}>
-                <Ionicons name="notifications-outline" size={23} color="#A6A6AD" />
-              </View>
-              <Text style={styles.rowText}>Push Notification</Text>
-            </View>
-
-            <Switch
-              value
-              trackColor={{ false: '#D9DEE8', true: '#7BC53F' }}
-              thumbColor="#FFFFFF"
-              ios_backgroundColor="#D9DEE8"
-              style={styles.switch}
-            />
+            <View style={styles.divider} />
           </View>
-
-          <View style={styles.divider} />
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -183,34 +143,6 @@ const styles = StyleSheet.create({
 
   list: {
     marginTop: 2,
-  },
-
-  row: {
-    height: 74,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexShrink: 1,
-  },
-
-  iconWrap: {
-    width: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 18,
-  },
-
-  rowText: {
-    fontSize: 17,
-    lineHeight: 21,
-    fontWeight: '500',
-    color: '#161C2D',
-    letterSpacing: -0.2,
   },
 
   divider: {

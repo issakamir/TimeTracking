@@ -126,8 +126,6 @@ export default function Account() {
           placeholder="Enter username"
           placeholderTextColor="#A1A1AA"
         />
-
-        {/* Save */}
         <Pressable
           style={[styles.saveButton, loading && styles.buttonDisabled]}
           onPress={updateProfile}
@@ -138,7 +136,6 @@ export default function Account() {
           </Text>
         </Pressable>
 
-        {/* Sign out */}
         <Pressable
           style={[styles.signOutButton, loading && styles.buttonDisabled]}
           onPress={() => supabase.auth.signOut()}
