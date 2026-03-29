@@ -7,9 +7,17 @@ import {generateMonth} from "@/utilis/utils";
 import {Ionicons} from "@expo/vector-icons";
 import {stylesCalendar} from "@/components/Home/Calendar/CalendarStyle"
 
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function Calendar(){
   const today    = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = formatLocalDate(today);
   const [year, setYear]                 = useState(today.getFullYear());
   const [month, setMonth]               = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
@@ -97,12 +105,21 @@ export function Calendar(){
                 const isActive   = DEMO_ACTIVE.has(d.date);
                 const isToday    = d.date === todayStr;
                 const isSelected = selectedDate === d.date;
+                const isFuture = d.date > todayStr;
 
                 return (
                   <Pressable
                     key={d.date}
-                    style={({ pressed }) => [stylesCalendar.dayCol, pressed && { opacity: 0.6 }]}
-                    onPress={() => router.push(`/day/${d.date}`)}
+                    disabled={isFuture}
+                    style={({ pressed }) => [
+                      stylesCalendar.dayCol,
+                      pressed && !isFuture && { opacity: 0.6 },
+                      isFuture && { opacity: 0.35 },
+                    ]}
+                    onPress={() => {
+                      if (isFuture) return;
+                      router.push(`/day/${d.date}`);
+                    }}
                   >
                     <View style={[
                       stylesCalendar.dayCircle,

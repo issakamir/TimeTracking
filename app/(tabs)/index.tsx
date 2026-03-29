@@ -1,7 +1,6 @@
 import {View, Text, StyleSheet, ScrollView,} from "react-native";
-import {MONTHS,} from "@/constants/mockData";
 import {C, PADDING} from "@/constants/theme";
-import {InsightCard} from "@/components/Home/InsightCard/InsightCard";
+import {InsightCard} from "@/components/Home/InsightCard";
 import {Calendar} from "@/components/Home/Calendar/Calendar";
 import {Categories} from "@/components/Home/CategoriesInfo/Categories";
 
