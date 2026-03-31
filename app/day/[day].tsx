@@ -46,6 +46,7 @@ export default function DayScreen() {
   const dayNum = selectedDay.getDate();
   const date = selectedDay.toISOString().split("T")[0];
 
+
   useEffect(() => {
     const loadActivities = async () => {
       try {
@@ -80,8 +81,11 @@ export default function DayScreen() {
       return;
     }
 
-    if (!category) {
-      Alert.alert("Select category");
+    const currentTotal=activities.reduce((sum, item) => {
+      return sum + Number(item.hours);
+    }, 0)
+    if(currentTotal+numericHours>=24){
+      Alert.alert("A day can contain only 24 hours")
       return;
     }
 
