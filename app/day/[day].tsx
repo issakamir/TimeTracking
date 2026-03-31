@@ -75,6 +75,10 @@ export default function DayScreen() {
       Alert.alert("Should be more than 0");
       return;
     }
+    if(numericHours>=24){
+      Alert.alert("Can't be more than 24")
+      return;
+    }
 
     if (!category) {
       Alert.alert("Select category");
