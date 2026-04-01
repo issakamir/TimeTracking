@@ -1,11 +1,12 @@
 import {Animated, Pressable, Text, View, PanResponder} from "react-native";
-import {DEMO_ACTIVE, MONTHS, WEEKDAYS} from "@/constants/mockData";
-import {router} from "expo-router";
-import React, {useRef, useState} from "react";
+import {MONTHS, WEEKDAYS} from "@/constants/mockData";
+import {router, useFocusEffect} from "expo-router";
+import React, {useCallback, useRef, useState} from "react";
 import {C} from "@/constants/theme";
 import {generateMonth} from "@/utilis/utils";
 import {Ionicons} from "@expo/vector-icons";
 import {stylesCalendar} from "@/components/Home/Calendar/CalendarStyle"
+import {supabase} from "@/lib/supabase";
 
 
 function formatLocalDate(date: Date) {
@@ -21,9 +22,33 @@ export function Calendar(){
   const [year, setYear]                 = useState(today.getFullYear());
   const [month, setMonth]               = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
+  const [activeDate, setActiveDate]=useState<Set<string>>(new Set());
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const navRef   = useRef({ prev: () => {}, next: () => {} });
+
+    const loadDate=async ()=>{
+      try{
+      const {data, error}= await supabase
+        .from("activities")
+        .select("date")
+
+      if(error) throw error;
+
+      const dataSet=new Set(data.map((item)=>item.date));
+      setActiveDate(dataSet);
+    }
+    catch(e){
+      console.error(e);
+      }
+    }
+
+    useFocusEffect(
+      useCallback(()=>{
+        loadDate();
+      }, [])
+    )
+
 
   function animateChange(fn: () => void) {
     Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
@@ -102,7 +127,7 @@ export function Calendar(){
               {week.map((d, di) => {
                 if (!d) return <View key={di} style={stylesCalendar.dayCol} />;
 
-                const isActive   = DEMO_ACTIVE.has(d.date);
+                const isActive   = activeDate.has(d.date);
                 const isToday    = d.date === todayStr;
                 const isSelected = selectedDate === d.date;
                 const isFuture = d.date > todayStr;

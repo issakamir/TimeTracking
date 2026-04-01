@@ -1,12 +1,6 @@
 export const MONTHS   = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 export const WEEKDAYS = ["M","T","W","T","F","S","S"];
 
-export const DEMO_ACTIVE = new Set([
-  "2026-03-03","2026-03-05","2026-03-07",
-  "2026-03-10","2026-03-12","2026-03-13",
-  "2026-03-14","2026-03-17","2026-03-18",
-]);
-
 export const CATEGORIES = [
   { label: "Deep Work", hours: 38, icon: "bulb-outline",    color: "#4F46E5" },
   { label: "Rest",      hours: 31, icon: "moon-outline",    color: "#7C3AED" },
