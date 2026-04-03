@@ -54,8 +54,8 @@ export default function Settings() {
             <View style={styles.divider} />
             <SettingsRow
               icon={ <Feather name="lock" size={22} color="#A6A6AD" />}
-              title={"Change Password"}/>
-
+              title={"Change Password"}
+            onPress={()=>{router.push('/account/password')}}/>
             <View style={styles.divider} />
           </View>
         </View>

@@ -16,6 +16,7 @@ export default function RootLayout() {
            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
            <Stack.Screen name="day/[day]" options={{ headerShown: false }} />
            <Stack.Screen name="account/account" options={{ headerShown: false }} />
+           <Stack.Screen name="account/password" options={{ headerShown: false }} />
          </Stack>
          <StatusBar style="auto" />
        </ThemeProvider>
