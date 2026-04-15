@@ -7,12 +7,12 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import {router, useLocalSearchParams} from "expo-router";
+import {useEffect, useState} from "react";
+import {Feather, Ionicons} from "@expo/vector-icons";
 import CustomPicker from "@/components/CustomPicker";
 import {
-  createActivity,
+  createActivity, deleteActivitiesByDate,
   deleteActivity,
   fetchActivities,
 } from "@/lib/api/activities";
@@ -29,15 +29,15 @@ export type Activity = {
 };
 
 const CATEGORIES: { key: CategoryKey; label: string }[] = [
-  { key: "deep", label: "Deep Work" },
-  { key: "study", label: "Study" },
-  { key: "gym", label: "Gym" },
-  { key: "social", label: "Social" },
-  { key: "rest", label: "Rest" },
+  {key: "deep", label: "Deep Work"},
+  {key: "study", label: "Study"},
+  {key: "gym", label: "Gym"},
+  {key: "social", label: "Social"},
+  {key: "rest", label: "Rest"},
 ];
 
 export default function DayScreen() {
-  const { day } = useLocalSearchParams();
+  const {day} = useLocalSearchParams();
   const [category, setCategory] = useState<CategoryKey>("");
   const [hours, setHours] = useState<string>("");
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -46,7 +46,9 @@ export default function DayScreen() {
   const dayNum = selectedDay.getDate();
   const date = selectedDay.toISOString().split("T")[0];
 
-
+  const currentTotal = activities.reduce((sum, item) => {
+    return sum + Number(item.hours);
+  }, 0)
   useEffect(() => {
     const loadActivities = async () => {
       try {
@@ -68,7 +70,7 @@ export default function DayScreen() {
       return;
     }
 
-    if(!category){
+    if (!category) {
       Alert.alert("Choose a category");
     }
     const numericHours = Number(hours);
@@ -76,15 +78,12 @@ export default function DayScreen() {
       Alert.alert("Should be more than 0");
       return;
     }
-    if(numericHours>=24){
+    if (numericHours >= 24) {
       Alert.alert("Can't be more than 24")
       return;
     }
 
-    const currentTotal=activities.reduce((sum, item) => {
-      return sum + Number(item.hours);
-    }, 0)
-    if(currentTotal+numericHours>=24){
+    if (currentTotal + numericHours >= 24) {
       Alert.alert("A day can contain only 24 hours")
       return;
     }
@@ -119,10 +118,28 @@ export default function DayScreen() {
     }
   };
 
-  const handleReset = () => {
-    setActivities([]);
-    setCategory("");
-    setHours("");
+  const handleReset = async () => {
+    Alert.alert("Reset all activities",
+      "This will delete all activity records. Are you sure?",
+      [
+        {text: "Cancel", style: "cancel"},
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteActivitiesByDate(date);
+              setActivities([]);
+              setCategory("");
+              setHours("");
+            } catch (e) {
+              console.error(e);
+              Alert.alert("Failed to reset this day");
+            }
+          },
+        },
+      ]);
+
   };
 
   return (
@@ -134,7 +151,7 @@ export default function DayScreen() {
         >
           <View style={styles.header}>
             <Pressable onPress={() => router.back()} style={styles.backBtn}>
-              <Feather name="arrow-left" size={24} color="#20297A" />
+              <Feather name="arrow-left" size={24} color="#20297A"/>
             </Pressable>
 
             <View style={styles.headerCenter}>
@@ -142,12 +159,12 @@ export default function DayScreen() {
               <Text style={styles.headerSub}>{date}</Text>
             </View>
 
-            <View style={styles.headerPlaceholder} />
+            <View style={styles.headerPlaceholder}/>
           </View>
 
           <View style={styles.insightCard}>
             <Text style={styles.insightLabel}>DAY SUMMARY</Text>
-            <Text style={styles.totalText}>Totally {}</Text>
+            <Text style={styles.totalText}>Totally {currentTotal}</Text>
             <Text style={styles.insightHint}>
               Add activities and track how your day was spent
             </Text>
@@ -157,14 +174,14 @@ export default function DayScreen() {
             <Text style={styles.sectionTitle}>Add Activity</Text>
 
             <Text style={styles.label}>Category</Text>
-              <CustomPicker
-                selectedValue={category}
-                onValueChange={(v) => setCategory(v as CategoryKey)}
-                options={CATEGORIES.map((c) => ({
-                  label: c.label,
-                  value: c.key,
-                }))}
-              />
+            <CustomPicker
+              selectedValue={category}
+              onValueChange={(v) => setCategory(v as CategoryKey)}
+              options={CATEGORIES.map((c) => ({
+                label: c.label,
+                value: c.key,
+              }))}
+            />
 
             <Text style={[styles.label, styles.labelSpacing]}>Hours</Text>
 
@@ -179,7 +196,7 @@ export default function DayScreen() {
               />
 
               <Pressable style={styles.addBtn} onPress={handleAdd}>
-                <Ionicons name="add" size={18} color="#FFFFFF" />
+                <Ionicons name="add" size={18} color="#FFFFFF"/>
                 <Text style={styles.addBtnText}>Add</Text>
               </Pressable>
             </View>
@@ -193,7 +210,7 @@ export default function DayScreen() {
                 {activities.map((item) => (
                   <View key={item.id} style={styles.item}>
                     <View style={styles.itemLeft}>
-                      <View style={styles.dot} />
+                      <View style={styles.dot}/>
                       <View>
                         <Text style={styles.itemTitle}>
                           {CATEGORIES.find((c) => c.key === item.category)?.label}
@@ -206,7 +223,7 @@ export default function DayScreen() {
                       style={styles.trashBtn}
                       onPress={() => handleDelete(item.id)}
                     >
-                      <Feather name="trash-2" size={18} color="#D84D4D" />
+                      <Feather name="trash-2" size={18} color="#D84D4D"/>
                     </Pressable>
                   </View>
                 ))}
@@ -481,7 +498,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: "#1F2B7B",
     shadowColor: "#1F2B7B",
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: {width: 0, height: 8},
     shadowOpacity: 0.14,
     shadowRadius: 18,
     elevation: 6,

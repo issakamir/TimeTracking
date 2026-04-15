@@ -48,3 +48,12 @@ export async function deleteActivity(id:string) {
 
   if(error) throw error;
 }
+
+export async function deleteActivitiesByDate(date: string) {
+  const { error } = await supabase
+    .from("activities")
+    .delete()
+    .eq("date", date);
+
+  if (error) throw error;
+}
