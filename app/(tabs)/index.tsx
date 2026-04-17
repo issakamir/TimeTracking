@@ -3,8 +3,9 @@ import {C, PADDING} from "@/constants/theme";
 import {InsightCard} from "@/components/Home/InsightCard";
 import {Calendar} from "@/components/Home/Calendar/Calendar";
 import {Categories} from "@/components/Home/CategoriesInfo/Categories";
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {supabase} from "@/lib/supabase";
+import {useFocusEffect} from "expo-router";
 
 type MonthlyStats = {
   totalHours: number;
@@ -22,50 +23,56 @@ export default function HomeScreen() {
   });
   const [loadingStats, setLoadingStats] = useState(false);
 
-  useEffect(() => {
-    const loadMonthData = async () => {
-      try {
-        setLoadingStats(true);
+  const loadMonthData = useCallback(async () => {
+    try {
+      setLoadingStats(true);
 
-        const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+      const startDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
 
-        const end = new Date(year, month + 1, 0);
-        const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
+      const end = new Date(year, month + 1, 0);
+      const endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(end.getDate()).padStart(2, "0")}`;
 
-        const { data, error } = await supabase
-          .from("activities")
-          .select("date, category, hours")
-          .gte("date", startDate)
-          .lte("date", endDate);
+      const { data, error } = await supabase
+        .from("activities")
+        .select("date, category, hours")
+        .gte("date", startDate)
+        .lte("date", endDate);
 
-        if (error) throw error;
+      if (error) throw error;
 
-        const activities = data ?? [];
+      const activities = data ?? [];
 
-        const totalHours = activities.reduce((sum, a) => sum + a.hours, 0);
+      const totalHours = activities.reduce((sum, a) => sum + a.hours, 0);
 
-        const hoursByCategory = activities.reduce((acc, a) => {
-          acc[a.category] = (acc[a.category] || 0) + a.hours;
-          return acc;
-        }, {} as Record<string, number>);
+      const hoursByCategory = activities.reduce((acc, a) => {
+        acc[a.category] = (acc[a.category] || 0) + a.hours;
+        return acc;
+      }, {} as Record<string, number>);
 
-        const datesSet = new Set(activities.map((a) => a.date));
+      const datesSet = new Set(activities.map((a) => a.date));
 
-        setStats({
-          totalHours,
-          hoursByCategory,
-        });
+      setStats({
+        totalHours,
+        hoursByCategory,
+      });
 
-        setActiveDates(datesSet);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
-    loadMonthData();
+      setActiveDates(datesSet);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingStats(false);
+    }
   }, [year, month]);
+
+  useEffect(() => {
+    loadMonthData();
+  }, [loadMonthData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMonthData();
+    }, [loadMonthData])
+  );
 
   return (
     <ScrollView
@@ -76,7 +83,7 @@ export default function HomeScreen() {
         <Text style={styles.header}>Time Tracker</Text>
       </View>
 
-      <InsightCard streak={18} monthlyHours={125} monthlyGoal={160} dailyAvg={6.4} />
+      <InsightCard streak={0} monthlyHours={stats.totalHours} monthlyGoal={0} dailyAvg={0} />
 
       <Calendar
         todayDate={today}
