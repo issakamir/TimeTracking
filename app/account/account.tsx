@@ -16,13 +16,33 @@ import { useAuth } from "@/lib/api/AuthProvider";
 import { router } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import {C} from "@/constants/theme";
+import * as ImagePicker from 'expo-image-picker'
 
 export default function Account() {
   const { session, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [image, setImage] = useState<string | null>(null);
 
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      alert("Permission required!");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
   const getProfile = useCallback(async () => {
     try {
       setLoading(true);
@@ -79,10 +99,11 @@ export default function Account() {
   }
 
   const avatarSource =
-    avatarUrl?.trim()
-      ? { uri: avatarUrl }
-      : {  };
-
+    image
+      ? { uri: image }
+      : avatarUrl?.trim()
+        ? { uri: avatarUrl }
+        : require("@/assets/images/favicon.png");
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -105,8 +126,8 @@ export default function Account() {
             <Image source={avatarSource} style={styles.avatar} />
           </View>
 
-          <Pressable style={styles.cameraBadge}>
-            <Ionicons name="camera-outline" size={18} color="#20297A" />
+          <Pressable style={styles.cameraBadge} onPress={pickImage}>
+            <Ionicons name="camera-outline" size={18} color="#20297A"/>
           </Pressable>
         </View>
 
