@@ -1,147 +1,184 @@
-import React, { useState } from "react";
-import {Alert, AppState, Pressable, StyleSheet, Text, TextInput, View,} from "react-native";
-import { supabase } from "@/lib/supabase";
-
-AppState.addEventListener('change', (state) => {
-  if (state === 'active') {
-    supabase.auth.startAutoRefresh()
-  } else {
-    supabase.auth.stopAutoRefresh()
-  }
-})
+import React, {useEffect, useState} from "react";
+import {
+  Alert,
+  AppState,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform
+} from "react-native";
+import {SafeAreaView} from "react-native-safe-area-context";
+import {supabase} from "@/lib/supabase";
+import {C} from "@/constants/theme";
+import {StyleSheet} from "react-native";
 
 export default function Auth() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signUpLoading, setSignUpLoading] = useState(false);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        supabase.auth.startAutoRefresh();
+      } else {
+        supabase.auth.stopAutoRefresh();
+      }
+    });
+
+    return () => {
+      subscription.remove()
+    }
+  }, [])
 
   async function signInWithEmail() {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    })
+    if (!email || !password) {
+      Alert.alert("Fill in all fields")
+      return;
+    }
+    try {
+      setSignInLoading(true);
+      const {error} = await supabase.auth.signInWithPassword({email, password});
 
-    if (error) Alert.alert(error.message)
-    setLoading(false)
+      if (error) throw error;
+    } catch (error) {
+      if (error instanceof Error) {
+        Alert.alert(error.message);
+      }
+      else{
+        Alert.alert("Something went wrong");
+      }
+    } finally {
+      setSignInLoading(false);
+    }
   }
 
   async function signUpWithEmail() {
-    setLoading(true)
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-    })
-
-    if (error) Alert.alert(error.message)
-    if (!session) Alert.alert('Please check your inbox for email verification!')
-    setLoading(false)
+    if (!email || !password) {
+      Alert.alert("Fill in all fields")
+      return;
+    }
+    setSignUpLoading(true);
+    const {data: {session}, error} = await supabase.auth.signUp({email, password});
+    if (error) Alert.alert(error.message);
+    if (!session) Alert.alert("Please check your inbox for email verification!");
+    setSignUpLoading(false);
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign in</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={styles.inner}>
+          <Text style={styles.title}>Welcome</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
 
-      <Text style={styles.label}>Email</Text>
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="email@address.com"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={styles.input}
-      />
+          <View style={styles.form}>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email"
+              placeholderTextColor={C.textTert}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={styles.input}
+            />
 
-      <Text style={[styles.label, { marginTop: 14 }]}>Password</Text>
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Password"
-        autoCapitalize="none"
-        secureTextEntry
-        style={styles.input}
-      />
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              placeholderTextColor={C.textTert}
+              secureTextEntry
+              style={styles.input}
+            />
 
-      <Pressable
-        style={[styles.button, loading && styles.buttonDisabled]}
-        disabled={loading}
-        onPress={signInWithEmail}
-      >
-        <Text style={styles.buttonText}>{loading ? "Loading..." : "Sign in"}</Text>
-      </Pressable>
+            <Pressable style={[styles.primaryButton, signInLoading && styles.disabled]} onPress={signInWithEmail}
+                       disabled={signInLoading}>
+              {signInLoading ? <ActivityIndicator color={C.card}/> : <Text style={styles.primaryText}>Sign In</Text>}
+            </Pressable>
 
-      <Pressable
-        style={[styles.buttonSecondary, loading && styles.buttonDisabled]}
-        disabled={loading}
-        onPress={signUpWithEmail}
-      >
-        <Text style={styles.buttonSecondaryText}>Sign up</Text>
-      </Pressable>
-    </View>
+            <Pressable style={[styles.secondaryButton, signUpLoading && styles.disabled]} onPress={signUpWithEmail}
+                       disabled={signUpLoading}>
+              <Text style={styles.secondaryText}>Sign Up</Text>
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
   container: {
-    marginTop: 40,
-    padding: 16,
-    gap: 8,
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    backgroundColor: C.bg,
+  },
+  inner: {
+    alignItems: "center",
   },
   title: {
-    fontSize: 28,
-    fontWeight: "900",
-    marginBottom: 8,
-    color: "#111827",
-  },
-  label: {
-    fontSize: 13,
+    fontSize: 32,
     fontWeight: "800",
-    color: "#6B7280",
-    letterSpacing: 0.4,
+    color: C.text,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: C.textSec,
+    marginBottom: 30,
+  },
+  form: {
+    width: "100%",
+    gap: 14,
   },
   input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 16,
-    paddingHorizontal: 14,
+    height: 60,
+    borderRadius: 22,
+    borderWidth: 1.2,
+    borderColor: C.divider,
+    paddingHorizontal: 18,
+    fontSize: 16,
+    color: C.text,
+    backgroundColor: C.card,
+  },
+  primaryButton: {
+    height: 58,
+    borderRadius: 24,
+    backgroundColor: C.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  primaryText: {
+    color: C.card,
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
-    backgroundColor: "#FFFFFF",
   },
-  button: {
-    marginTop: 18,
-    height: 54,
-    borderRadius: 18,
+  secondaryButton: {
+    height: 56,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#111827",
+    borderWidth: 1.2,
+    borderColor: C.divider,
+    backgroundColor: C.card,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "900",
+  secondaryText: {
+    color: C.accent,
+    fontSize: 16,
+    fontWeight: "700",
   },
-  buttonSecondary: {
-    marginTop: 10,
-    height: 54,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-  },
-  buttonSecondaryText: {
-    color: "#111827",
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  buttonDisabled: {
+  disabled: {
     opacity: 0.6,
   },
 });
