@@ -15,7 +15,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon:() => (
             <Image
-              source={require('@/assets/icons/home-button.png')}
+              source={require('@/assets/icons/homeIcon.png')}
               style={{width:24, height:24}}
             />
           )
@@ -25,6 +25,11 @@ export default function TabLayout() {
       name="settings"
       options={{
         title: 'Settings',
+        tabBarIcon:() => (
+          <Image
+          source={require('@/assets/icons/settingsIcon.png')}
+          style={{width:24, height:24}}/>
+        )
       }}/>
     </Tabs>
 
