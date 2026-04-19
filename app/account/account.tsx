@@ -65,7 +65,7 @@ export default function Account() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session]);
 
   useEffect(() => {
     if (session) getProfile();
